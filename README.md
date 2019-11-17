@@ -11,3 +11,14 @@ $ go get github.com/robteix/testmod@v1.0.1
 - Generate proto: ```protoc --go_out=. *.proto```
 - Build docker images: ```docker-compose build```
 - Start docker compose: ```docker-compose --compatibility up```
+- Docker stats: ```docker stats -a go-nats_jvmdiller_1 go-nats_diller_1 go-nats_factory_1```
+- Example of memory limit in docker-compose.yml: 
+<pre>
+factory:
+  build: ./factory
+  network_mode: host
+  deploy:
+    resources:
+      limits:
+        memory: 1024M
+</pre>

@@ -3,20 +3,20 @@
 ############################
 FROM golang:alpine AS builder
 RUN apk update && apk add --no-cache git
-WORKDIR $GOPATH/src/github.com/alekseysamoylov/dialer
+WORKDIR $GOPATH/src/github.com/alekseysamoylov/dealer
 COPY . .
 
-WORKDIR $GOPATH/src/github.com/alekseysamoylov/dialer
-RUN go build -o /go/bin/dialer
+WORKDIR $GOPATH/src/github.com/alekseysamoylov/dealer
+RUN go build -o /go/bin/dealer
 
 ############################
 # STEP 2 build a small image
 ############################
 FROM alpine:3.10
 # Copy our static executable.
-RUN mkdir /usr/share/dialer
-RUN mkdir /var/log/dialer
-COPY --from=builder /go/bin/dialer /usr/share/dialer/dialer
-WORKDIR /usr/share/dialer
+RUN mkdir /usr/share/dealer
+RUN mkdir /var/log/dealer
+COPY --from=builder /go/bin/dealer /usr/share/dealer/dealer
+WORKDIR /usr/share/dealer
 # Run the metricbeat binary.
-ENTRYPOINT ["./dialer"]
+ENTRYPOINT ["./dealer"]

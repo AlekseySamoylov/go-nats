@@ -17,15 +17,11 @@ services:
   factory:
     build: ./factory
     network_mode: host
-    deploy:
-      resources:
-        limits:
-          memory: 6M
 
   diller:
-    build: ./dialer
+    build: ./dealer
     network_mode: host
-    deploy:
-      resources:
-        limits:
-          memory: 30M
+
+  jvmdiller:
+    build: ./jvmDealer
+    network_mode: host
