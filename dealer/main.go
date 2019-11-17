@@ -6,7 +6,6 @@ import (
 	"github.com/nats-io/go-nats"
 	"go-nats/car"
 	"log"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -16,23 +15,21 @@ func main() {
 	time.Sleep(5 * time.Second)
 
 	natsConnection, _ := nats.Connect(nats.DefaultURL)
-	deliveryCount := uint32(0)
-	waitGroup.Add(0)
-	subscribeForDelivery(natsConnection, &deliveryCount)
-
+	subscribeForDelivery(natsConnection)
+	carNumberCorrection := 0
 	for true {
-		waitDelivery(&deliveryCount)
-		waitGroup.Add(carAmount)
-		time.Sleep(5 * time.Second)
-		orderManyCars(natsConnection)
+		orderManyCars(natsConnection, carNumberCorrection)
+		carNumberCorrection = waitDelivery()
 	}
 	defer natsConnection.Close()
 }
 
-func orderManyCars(natsConnection *nats.Conn) {
+func orderManyCars(natsConnection *nats.Conn, carNumberCorrection int) {
 	order := new(car.Order)
 	order.Id = uuid.New().String()
-	order.Amount = carAmount
+	//log.Printf("Car number correction %d \n", carNumberCorrection)
+	order.Amount = int32(carAmount + carNumberCorrection)
+	//log.Printf("Car number correction final %d \n", order.Amount)
 	order.Subject = deliverySubject
 	orderData, _ := proto.Marshal(order)
 	msg, err := natsConnection.Request("order.service", orderData, 1000*time.Millisecond)
@@ -47,13 +44,13 @@ func orderManyCars(natsConnection *nats.Conn) {
 	}
 }
 
-func subscribeForDelivery(natsConnection *nats.Conn, counter *uint32) {
+func subscribeForDelivery(natsConnection *nats.Conn) {
 	_, subError := natsConnection.Subscribe(deliverySubject, func(m *nats.Msg) {
 		carDelivery := car.Delivery{}
 		_ = proto.Unmarshal(m.Data, &carDelivery)
 		if carDelivery.Model == "Ford Mustang Shelby GT350" {
-			atomic.AddUint32(counter, 1)
-			countDown()
+			atomic.AddUint32(&deliveryCount, 1)
+			atomic.AddUint32(&deliverySum, 1)
 		}
 	})
 	if subError != nil {
@@ -61,37 +58,26 @@ func subscribeForDelivery(natsConnection *nats.Conn, counter *uint32) {
 	}
 }
 
-func countDown() {
-	waitGroup.Done()
-}
-
-func waitDelivery(deliveryCount *uint32) {
-	if waitTimeout(&waitGroup, waitDeliverySeconds*time.Second) {
-		log.Println("Timed out waiting for car delivery")
-	} else {
-		log.Println("Delivery finished successfully")
+func waitDelivery() int {
+	previousDeliveryAmount := uint32(0)
+	for true {
+		if (time.Now().After(deliveryTimeout) || deliverySum%carAmount == 0) && previousDeliveryAmount == deliveryCount {
+			//log.Printf("Previous amount and current %d , %d \n", previousDeliveryAmount, deliveryCount)
+			break
+		}
+		previousDeliveryAmount = deliveryCount
+		time.Sleep(500 * time.Microsecond)
 	}
-	log.Printf("Number of delivered Mustang Shelby GT350: %d \n", *deliveryCount)
+
+	//log.Printf("Number of delivered Mustang Shelby GT350: %d \n", deliverySum)
+	atomic.StoreUint32(&deliveryCount, 0)
+	deliveryTimeout = time.Now().Add(time.Second * 5)
+	return int(carAmount - (deliverySum % carAmount))
 }
 
-// waitTimeout waits for the waitgroup for the specified max timeout.
-// Returns true if waiting timed out.
-func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return false // completed normally
-	case <-time.After(timeout):
-		return true // timed out
-	}
-}
-
-var waitGroup = sync.WaitGroup{}
+var deliveryTimeout = time.Now().Add(time.Second * 5)
+var deliveryCount = uint32(0)
+var deliverySum = uint32(0)
 
 const deliverySubject = "delivery.service"
 const carAmount = 500_000
-const waitDeliverySeconds = 5
