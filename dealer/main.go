@@ -49,7 +49,6 @@ func subscribeForDelivery(natsConnection *nats.Conn) {
 		carDelivery := car.Delivery{}
 		_ = proto.Unmarshal(m.Data, &carDelivery)
 		if carDelivery.Model == "Ford Mustang Shelby GT350" {
-			atomic.AddUint32(&deliveryCount, 1)
 			atomic.AddUint32(&deliverySum, 1)
 		}
 	})
@@ -61,22 +60,20 @@ func subscribeForDelivery(natsConnection *nats.Conn) {
 func waitDelivery() int {
 	previousDeliveryAmount := uint32(0)
 	for true {
-		if (time.Now().After(deliveryTimeout) || deliverySum%carAmount == 0) && previousDeliveryAmount == deliveryCount {
+		if (time.Now().After(deliveryTimeout) || deliverySum%carAmount == 0) && previousDeliveryAmount == deliverySum {
 			//log.Printf("Previous amount and current %d , %d \n", previousDeliveryAmount, deliveryCount)
 			break
 		}
-		previousDeliveryAmount = deliveryCount
+		previousDeliveryAmount = deliverySum
 		time.Sleep(500 * time.Microsecond)
 	}
 
 	//log.Printf("Number of delivered Mustang Shelby GT350: %d \n", deliverySum)
-	atomic.StoreUint32(&deliveryCount, 0)
 	deliveryTimeout = time.Now().Add(time.Second * 5)
 	return int(carAmount - (deliverySum % carAmount))
 }
 
 var deliveryTimeout = time.Now().Add(time.Second * 5)
-var deliveryCount = uint32(0)
 var deliverySum = uint32(0)
 
 const deliverySubject = "delivery.service"
