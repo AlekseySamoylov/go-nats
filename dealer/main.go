@@ -68,9 +68,14 @@ func waitDelivery() int {
 		time.Sleep(500 * time.Microsecond)
 	}
 
-	//log.Printf("Number of delivered Mustang Shelby GT350: %d \n", deliverySum)
+	log.Printf("Number of delivered Mustang Shelby GT350: %d \n", deliverySum)
 	deliveryTimeout = time.Now().Add(time.Second * 5)
-	return int(carAmount - (deliverySum % carAmount))
+	deliveredForOrderOrZero := deliverySum % carAmount
+	if deliveredForOrderOrZero == 0 {
+		return 0
+	} else {
+		return int(carAmount - deliveredForOrderOrZero)
+	}
 }
 
 var deliveryTimeout = time.Now().Add(time.Second * 5)

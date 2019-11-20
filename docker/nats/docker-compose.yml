@@ -2,7 +2,7 @@ version: "3"
 
 services:
   nats:
-    image: nats-streaming:latest
+    image: nats:latest
     expose:
       - "4222"
       - "4223"
