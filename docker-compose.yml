@@ -18,10 +18,10 @@ services:
     build: ./factory
     network_mode: host
 
-  diller:
+  dealer:
     build: ./dealer
     network_mode: host
 
-  jvmdiller:
+  jvmdealer:
     build: ./jvmDealer
     network_mode: host
