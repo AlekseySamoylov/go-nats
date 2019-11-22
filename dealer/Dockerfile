@@ -18,5 +18,5 @@ RUN mkdir /usr/share/dealer
 RUN mkdir /var/log/dealer
 COPY --from=builder /go/bin/dealer /usr/share/dealer/dealer
 WORKDIR /usr/share/dealer
-# Run the metricbeat binary.
+# Run the dealer binary.
 ENTRYPOINT ["./dealer"]
